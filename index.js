@@ -1,7 +1,7 @@
 const express = require('express')
 const cors = require('cors')
 require('dotenv').config()
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express()
 const port = process.env.PORT || 5000;
 
@@ -38,12 +38,15 @@ async function run() {
 
     const bookCollection = client.db("bookLibrary").collection('book')
     const categoryCollection = client.db("bookLibrary").collection('category')
-    
+
+    // books
+
     app.get('/books', async(req, res) => {
       const cursor = bookCollection.find();
       const result = await cursor.toArray();
       res.send(result)
   })
+
 
   app.post('/books', async(req, res)=>{
     const book = req.body
@@ -51,6 +54,22 @@ async function run() {
     const result = await bookCollection.insertOne(book);
     res.send(result)
     })
+
+
+
+    // categories
+
+    app.get('/categories', async(req, res) => {
+      const cursor = categoryCollection.find();
+      const result = await cursor.toArray();
+      res.send(result)
+  })
+
+  app.get("/categories/:category", async (req, res) => {
+    console.log(req.params.category);
+    const result = await bookCollection.find({ category: req.params.category }).toArray();
+    res.send(result)
+  })
 
 
     // Send a ping to confirm a successful connection
