@@ -38,6 +38,7 @@ async function run() {
 
     const bookCollection = client.db("bookLibrary").collection('book')
     const categoryCollection = client.db("bookLibrary").collection('category')
+    const borrowCollection = client.db("bookLibrary").collection('borrow')
 
     // books
 
@@ -46,7 +47,8 @@ async function run() {
       const result = await cursor.toArray();
       res.send(result)
   })
-
+  
+  // find a book by id for details page
   app.get('/books/:id', async(req, res) => {
     const id = req.params.id
     const query = { _id: new ObjectId(id) };
@@ -54,13 +56,28 @@ async function run() {
     res.send(result)
   })
 
-
+  // save a book
   app.post('/books', async(req, res)=>{
     const book = req.body
-    console.log(book);
+    // console.log(book);
     const result = await bookCollection.insertOne(book);
     res.send(result)
     })
+
+
+    // borrows
+    app.post('/borrows', async(req, res)=>{
+      const borrow = req.body
+      console.log(borrow);
+      const result = await borrowCollection.insertOne(borrow);
+      // update book quantity
+      const updateDoc = {
+        $inc: {quantity: -1}
+      }
+      const quantityQuery = {_id: new ObjectId(borrow.bookId)}
+      const updateQuantity =await bookCollection.updateOne(quantityQuery, updateDoc)
+      res.send(result)
+      })
 
 
 
@@ -72,8 +89,9 @@ async function run() {
       res.send(result)
   })
 
+  // find categorywise book
   app.get("/categories/:category", async (req, res) => {
-    console.log(req.params.category);
+    // console.log(req.params.category);
     const result = await bookCollection.find({ category: req.params.category }).toArray();
     res.send(result)
   })
