@@ -9,7 +9,7 @@ const port = process.env.PORT || 5000;
 app.use(
     cors({
       origin: [
-        "http://localhost:5173",
+        "http://localhost:5173","https://b9a11-book-library.web.app","https://b9a11-book-library.firebaseapp.com"
       ],
       credentials: true,
     })
@@ -45,6 +45,13 @@ async function run() {
       const cursor = bookCollection.find();
       const result = await cursor.toArray();
       res.send(result)
+  })
+
+  app.get('/books/:id', async(req, res) => {
+    const id = req.params.id
+    const query = { _id: new ObjectId(id) };
+    const result = await bookCollection.findOne(query);
+    res.send(result)
   })
 
 
