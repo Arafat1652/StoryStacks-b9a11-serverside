@@ -66,6 +66,15 @@ async function run() {
 
 
     // borrows
+
+    // get all borrow book
+    app.get('/borrows', async(req, res) => {
+      const cursor = borrowCollection.find();
+      const result = await cursor.toArray();
+      res.send(result)
+  })
+
+    // save data in borrow collection
     app.post('/borrows', async(req, res)=>{
       const borrow = req.body
       console.log(borrow);
