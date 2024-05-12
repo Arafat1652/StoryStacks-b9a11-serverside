@@ -101,6 +101,21 @@ async function run() {
     app.post('/borrows', async(req, res)=>{
       const borrow = req.body
       // console.log(borrow);
+
+      // if its already exists then don't execute the next section
+      const query = {
+        user_email: borrow.user_email,
+        bookId: borrow.bookId
+      }
+      const alreadyExist = await borrowCollection.findOne(query)
+      console.log(alreadyExist);
+      
+      if(alreadyExist){
+        return res
+        .status(400)
+        .send('you are already borrowed this book')
+      }
+      
       const result = await borrowCollection.insertOne(borrow);
       // update book quantity
       const updateDoc = {
