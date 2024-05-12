@@ -67,17 +67,17 @@ async function run() {
 
     // borrows
 
-    // get all borrow book
-    app.get('/borrows', async(req, res) => {
-      const cursor = borrowCollection.find();
-      const result = await cursor.toArray();
+    // get borrows book by specific user
+    app.get("/myBorrows/:email", async (req, res) => {
+      // console.log(req.params.email);
+      const result = await borrowCollection.find({ user_email: req.params.email }).toArray();
       res.send(result)
-  })
+    })
 
     // save data in borrow collection
     app.post('/borrows', async(req, res)=>{
       const borrow = req.body
-      console.log(borrow);
+      // console.log(borrow);
       const result = await borrowCollection.insertOne(borrow);
       // update book quantity
       const updateDoc = {
@@ -87,6 +87,23 @@ async function run() {
       const updateQuantity =await bookCollection.updateOne(quantityQuery, updateDoc)
       res.send(result)
       })
+
+      // return data by deleting
+      app.delete('/return/:id', async(req, res) => {
+        const id = req.params.id
+        // from url ? bookId
+        const bookIdQuery = {bookId: req.query.bookId}
+       console.log('id',id, 'bookid', bookIdQuery.bookId);
+        const query = { _id: new ObjectId(id)};
+        const result = await borrowCollection.deleteOne(query);
+        // for update the quantity
+        const updateDoc = {
+          $inc: {quantity: 1}
+        }
+        const returnQuery = {_id: new ObjectId(bookIdQuery.bookId)}
+        const updateQuantity = await bookCollection.updateOne(returnQuery, updateDoc)
+        res.send(result)
+    })
 
 
 
