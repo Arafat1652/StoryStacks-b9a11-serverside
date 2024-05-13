@@ -43,7 +43,14 @@ async function run() {
     // books
 
     app.get('/books', async(req, res) => {
-      const cursor = bookCollection.find();
+      const filter = req.query.filter;
+    console.log(filter);
+    // filtering which book quantity is greater then 0
+    let query = {};
+    if (filter) {
+        query = { quantity: { $gt: 0 } };
+    }
+      const cursor = bookCollection.find(query);
       const result = await cursor.toArray();
       res.send(result)
   })
