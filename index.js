@@ -1,20 +1,55 @@
 const express = require('express')
 const cors = require('cors')
 require('dotenv').config()
+const jwt = require('jsonwebtoken')
+const cookieParser = require('cookie-parser')
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express()
 const port = process.env.PORT || 5000;
 
+
+const corsOptions = {
+  origin: [
+    'http://localhost:5173','https://b9a11-book-library.web.app','https://b9a11-book-library.firebaseapp.com',
+  ],
+  credentials: true,
+  optionSuccessStatus: 200,
+}
+
+
+// app.use(
+//     cors({
+//       origin: [
+//         "http://localhost:5173","https://b9a11-book-library.web.app","https://b9a11-book-library.firebaseapp.com"
+//       ],
+//       credentials: true,
+//     })
+//   );
+
 // middleware
-app.use(
-    cors({
-      origin: [
-        "http://localhost:5173","https://b9a11-book-library.web.app","https://b9a11-book-library.firebaseapp.com"
-      ],
-      credentials: true,
-    })
-  );
+app.use(cors(corsOptions))
 app.use(express.json())
+app.use(cookieParser())
+
+
+// verify jwt middleware
+const verifyToken = (req, res, next) => {
+  const token = req.cookies?.token
+  if (!token) return res.status(401).send({ message: 'unauthorized access' })
+  if (token) {
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+      if (err) {
+        console.log(err)
+        return res.status(401).send({ message: 'unauthorized access' })
+      }
+      // console.log(decoded)
+
+      req.user = decoded
+      next()
+    })
+  }
+}
+
 
 
 
@@ -40,11 +75,43 @@ async function run() {
     const categoryCollection = client.db("bookLibrary").collection('category')
     const borrowCollection = client.db("bookLibrary").collection('borrow')
 
+
+    // jwt
+    app.post('/jwt', async (req, res) => {
+      const email = req.body
+      const token = jwt.sign(email, process.env.ACCESS_TOKEN_SECRET, {
+        expiresIn: '365d',
+      })
+      res
+        .cookie('token', token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+        })
+        .send({ success: true })
+    })
+
+    // clear the token when logout
+    app.get('/logout', (req, res) => {
+      res
+        .clearCookie('token', {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+          maxAge: 0,
+        })
+        .send({ success: true })
+    })
+
+
     // books
 
-    app.get('/books', async(req, res) => {
+    app.get('/books',verifyToken, async(req, res) => {
+      const token = req.cookies.token
+      // console.log(token);
+      
       const filter = req.query.filter;
-    console.log(filter);
+    // console.log(filter);
     // filtering which book quantity is greater then 0
     let query = {};
     if (filter) {
@@ -71,10 +138,10 @@ async function run() {
     res.send(result)
   })
 
-  app.put('/updateBook/:id', async(req, res) => {
+  app.put('/updateBook/:id',verifyToken, async(req, res) => {
     const id = req.params.id;
     const book = req.body;
-    console.log(id , book)
+    // console.log(id , book)
     const filter = { _id: new ObjectId(id)};
     const options = { upsert: true };
     const udatedUser = {
@@ -87,7 +154,9 @@ async function run() {
   })
 
   // save a book
-  app.post('/books', async(req, res)=>{
+  app.post('/books',verifyToken, async(req, res)=>{
+    const token = req.cookies.token
+      console.log(token);
     const book = req.body
     // console.log(book);
     const result = await bookCollection.insertOne(book);
@@ -115,7 +184,7 @@ async function run() {
         bookId: borrow.bookId
       }
       const alreadyExist = await borrowCollection.findOne(query)
-      console.log(alreadyExist);
+      // console.log(alreadyExist);
       
       if(alreadyExist){
         return res
