@@ -74,6 +74,7 @@ async function run() {
     const bookCollection = client.db("bookLibrary").collection('book')
     const categoryCollection = client.db("bookLibrary").collection('category')
     const borrowCollection = client.db("bookLibrary").collection('borrow')
+    const userCollection = client.db("bookLibrary").collection('user')
 
 
     // jwt
@@ -142,6 +143,16 @@ async function run() {
     const id = req.params.id;
     const book = req.body;
     // console.log(id , book)
+
+    // checking user role
+    const person = await userCollection.findOne({user_email: book.user_email})
+    // console.log(person);
+    
+    if(person.role==="normal"){
+      return res.status(200).send({message: 'only librarian can update book' , isError: true});
+    }
+
+
     const filter = { _id: new ObjectId(id)};
     const options = { upsert: true };
     const udatedUser = {
@@ -156,8 +167,17 @@ async function run() {
   // save a book
   app.post('/books',verifyToken, async(req, res)=>{
     const token = req.cookies.token
-      console.log(token);
+      // console.log(token);
     const book = req.body
+
+    // cheking user role
+    const person = await userCollection.findOne({user_email: book.user_email})
+    // console.log(person.role);
+    
+    if(person.role==="normal"){
+      return res.status(200).send({message: 'only librarian can add book' , isError: true});
+    }
+
     // console.log(book);
     const result = await bookCollection.insertOne(book);
     res.send(result)
@@ -168,7 +188,15 @@ async function run() {
 
     // get borrows book by specific user
     app.get("/myBorrows/:email",verifyToken, async (req, res) => {
-      // console.log(req.params.email);
+      // console.log('normal email',req.params.email);
+      // console.log('token email',req.user.email);
+
+      const tokenEmail = req.user.email
+      const email = req.params.email
+      if (tokenEmail !== email) {
+        return res.status(403).send({ message: 'forbidden access' })
+      }
+
       const result = await borrowCollection.find({ user_email: req.params.email }).toArray();
       res.send(result)
     })
@@ -216,7 +244,7 @@ async function run() {
         const id = req.params.id
         // from url ? bookId
         const bookIdQuery = {bookId: req.query.bookId}
-       console.log('id',id, 'bookid', bookIdQuery.bookId);
+      //  console.log('id',id, 'bookid', bookIdQuery.bookId);
         const query = { _id: new ObjectId(id)};
         const result = await borrowCollection.deleteOne(query);
         // for update the quantity
@@ -243,6 +271,22 @@ async function run() {
     // console.log(req.params.category);
     const result = await bookCollection.find({ category: req.params.category }).toArray();
     res.send(result)
+  })
+
+  // user collection
+  app.post('/users', async(req, res)=>{
+    const user = req.body
+      const query = {
+        user_email: user.user_email,
+      }
+      const alreadyExist = await userCollection.findOne(query)
+      // console.log(alreadyExist);
+      
+      if(alreadyExist){
+        return 
+      }
+      const result = await userCollection.insertOne(user);
+      res.send(result)
   })
 
 
