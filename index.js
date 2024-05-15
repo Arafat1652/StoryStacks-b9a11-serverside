@@ -167,7 +167,7 @@ async function run() {
     // borrows
 
     // get borrows book by specific user
-    app.get("/myBorrows/:email", async (req, res) => {
+    app.get("/myBorrows/:email",verifyToken, async (req, res) => {
       // console.log(req.params.email);
       const result = await borrowCollection.find({ user_email: req.params.email }).toArray();
       res.send(result)
@@ -178,6 +178,17 @@ async function run() {
       const borrow = req.body
       // console.log(borrow);
 
+
+      // Check if the user has already borrowed 3 books
+    const borrowCount = await borrowCollection.countDocuments({ user_email: borrow.user_email });
+    
+    if (borrowCount >= 3) {
+      return res.status(200).send({message: 'You have already borrowed the maximum number of books (3)' , isError: true});
+    }
+
+    // If the user hasn't borrowed 3 books, proceed with borrowing
+
+
       // if its already exists then don't execute the next section
       const query = {
         user_email: borrow.user_email,
@@ -187,9 +198,7 @@ async function run() {
       // console.log(alreadyExist);
       
       if(alreadyExist){
-        return res
-        .status(400)
-        .send('you are already borrowed this book')
+        return res.status(200).send({message: 'your are already borrowed this book' , isError: true});
       }
       
       const result = await borrowCollection.insertOne(borrow);
@@ -199,7 +208,7 @@ async function run() {
       }
       const quantityQuery = {_id: new ObjectId(borrow.bookId)}
       const updateQuantity =await bookCollection.updateOne(quantityQuery, updateDoc)
-      res.send(result)
+      return res.status(200).send({message: 'you have succesfully borrwed this book' , isError: false});
       })
 
       // return data by deleting
