@@ -93,24 +93,17 @@ async function run() {
     })
 
     // clear the token when logout
-    // app.get('/logout', (req, res) => {
-    //   res
-    //     .clearCookie('token', {
-    //       httpOnly: true,
-    //       secure: process.env.NODE_ENV === 'production',
-    //       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
-    //       maxAge: 0,
-    //     })
-    //     .send({ success: true })
-    // })
-
-    app.post('/logout', async(req, res)=>{
-      const user = req.body;
+    app.get('/logout', (req, res) => {
       res
-      .clearCookie('token', {maxAge:0,
-        sameSite: 'none', secure:true})
-        .send({success:true})
+        .clearCookie('token', {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+          maxAge: 0,
+        })
+        .send({ success: true })
     })
+
 
     // books
 
