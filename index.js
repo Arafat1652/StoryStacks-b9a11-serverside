@@ -110,16 +110,25 @@ async function run() {
     app.get('/books',verifyToken, async(req, res) => {
       const token = req.cookies.token
       // console.log(token);
-      
       const filter = req.query.filter;
-    // console.log(filter);
-    // filtering which book quantity is greater then 0
-    let query = {};
-    if (filter) {
-        query = { quantity: { $gt: 0 } };
+      const search = req.query.search
+      const searchType = req.query.searchType || 'book'; 
+      console.log(searchType, search);
+
+      let query = {};
+
+      if (searchType === 'book') {
+        query.book_name = { $regex: search, $options: 'i' };
+    } else if (searchType === 'author') {
+        query.author_name = { $regex: search, $options: 'i' };
     }
-      const cursor = bookCollection.find(query);
-      const result = await cursor.toArray();
+  
+      if (filter) {
+          query.quantity = { $gt: 0 };
+      }
+      
+      console.log(search, filter);
+      const result=await  bookCollection.find(query).toArray();
       res.send(result)
   })
   
